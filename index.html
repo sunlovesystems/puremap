@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PureMap — Curated Organic & Healthy Food Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F3EE;
+    --bg-card: #FFFFFF;
+    --text-primary: #2C2416;
+    --text-secondary: #7A6F60;
+    --text-muted: #A89E8E;
+    --accent-green: #4A7C59;
+    --accent-green-light: #6B9E78;
+    --accent-green-bg: #E8F0E4;
+    --accent-amber: #C4883A;
+    --accent-amber-bg: #FDF3E4;
+    --accent-red: #B85C4A;
+    --border: #E5DFD4;
+    --shadow-sm: 0 1px 3px rgba(44,36,22,0.06);
+    --shadow-md: 0 4px 16px rgba(44,36,22,0.08);
+    --shadow-lg: 0 8px 32px rgba(44,36,22,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-pill: 100px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(246,243,238,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    background: var(--accent-green);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15));
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .logo-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+
+  .header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 24px;
+  }
+
+  .search-bar {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .search-bar input {
+    width: 100%;
+    height: 40px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 0 16px 0 40px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-bar input::placeholder { color: var(--text-muted); }
+  .search-bar input:focus {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(74,124,89,0.1);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+
+  .btn-primary {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-green-light);
+    border-color: var(--accent-green-light);
+    color: white;
+  }
+
+  /* ── CITY SWITCHER ── */
+  .city-bar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: rgba(246,243,238,0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .city-bar::-webkit-scrollbar { display: none; }
+
+  .city-chip {
+    height: 30px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .city-chip:hover { color: var(--text-primary); background: rgba(0,0,0,0.03); }
+
+  .city-chip.active {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    top: 108px;
+    left: 0;
+    bottom: 0;
+    width: 380px;
+    z-index: 800;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .filter-section {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .filter-chip {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .filter-chip:hover { border-color: var(--accent-green); color: var(--accent-green); }
+
+  .filter-chip.active {
+    background: var(--accent-green-bg);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+
+  .filter-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .results-header {
+    padding: 14px 20px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .results-count {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .sort-btn {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+  }
+
+  /* ── PLACE CARDS ── */
+  .place-list {
+    padding: 4px 12px 24px;
+  }
+
+  .place-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .place-card:hover {
+    border-color: var(--accent-green);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .place-card.active {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(74,124,89,0.15), var(--shadow-md);
+  }
+
+  .place-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+
+  .place-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--text-primary);
+  }
+
+  .organic-badge {
+    flex-shrink: 0;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .badge-full { background: var(--accent-green-bg); color: var(--accent-green); }
+  .badge-mostly { background: #E4ECF0; color: #4A7088; }
+  .badge-some { background: var(--accent-amber-bg); color: var(--accent-amber); }
+
+  .place-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+
+  .place-address {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .place-notes {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  .place-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .place-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .verified-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  .stale-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+  }
+
+  /* ── MAP ── */
+  .map-container {
+    position: fixed;
+    top: 108px;
+    left: 380px;
+    right: 0;
+    bottom: 0;
+    z-index: 700;
+  }
+
+  #map { width: 100%; height: 100%; }
+
+  /* Leaflet overrides */
+  .leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: var(--radius-sm) !important; overflow: hidden; box-shadow: var(--shadow-sm) !important; }
+  .leaflet-control-zoom a { background: var(--bg-card) !important; color: var(--text-secondary) !important; width: 34px !important; height: 34px !important; line-height: 34px !important; font-size: 16px !important; border-bottom: 1px solid var(--border) !important; }
+  .leaflet-control-zoom a:hover { background: var(--bg) !important; }
+
+  /* Custom markers */
+  .custom-marker {
+    width: 32px;
+    height: 32px;
+    border-radius: 50% 50% 50% 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+    cursor: pointer;
+    border: 2px solid white;
+  }
+
+  .custom-marker:hover { transform: rotate(-45deg) scale(1.15); }
+
+  .custom-marker span {
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .marker-grocery { background: var(--accent-green); }
+  .marker-restaurant { background: var(--accent-amber); }
+  .marker-juice { background: #7B5EA7; }
+  .marker-cafe { background: #B85C4A; }
+
+  /* Popup */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border: 1px solid var(--border);
+    padding: 0 !important;
+  }
+  .leaflet-popup-content { margin: 0 !important; min-width: 240px; }
+  .leaflet-popup-tip { border-top-color: var(--bg-card); }
+
+  .popup-inner { padding: 16px; }
+  .popup-name { font-family: 'DM Serif Display', serif; font-size: 16px; margin-bottom: 4px; }
+  .popup-address { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .popup-notes { font-size: 12px; color: var(--text-secondary); line-height: 1.4; font-style: italic; padding: 6px 8px; background: var(--bg); border-radius: 6px; margin-bottom: 8px; }
+  .popup-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 10px; }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    position: fixed;
+    top: 108px;
+    right: 0;
+    bottom: 0;
+    width: 360px;
+    z-index: 850;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(44,36,22,0.06);
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .detail-panel.open { transform: translateX(0); }
+
+  .detail-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .detail-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 4px;
+    padding-right: 36px;
+  }
+
+  .detail-type { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+
+  .detail-body { padding: 16px 20px; }
+
+  .detail-section { margin-bottom: 18px; }
+
+  .detail-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .detail-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+  .detail-address-text { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+  .report-btn {
+    width: 100%;
+    height: 40px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .report-btn:hover { border-color: var(--accent-red); color: var(--accent-red); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .sidebar { width: 320px; }
+    .map-container { left: 320px; }
+    .logo-tag { display: none; }
+  }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .map-container { left: 0; }
+    .header-center { display: none; }
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .place-card { animation: fadeInUp 0.3s ease both; }
+  .place-card:nth-child(2) { animation-delay: 0.04s; }
+  .place-card:nth-child(3) { animation-delay: 0.08s; }
+  .place-card:nth-child(4) { animation-delay: 0.12s; }
+  .place-card:nth-child(5) { animation-delay: 0.16s; }
+  .place-card:nth-child(6) { animation-delay: 0.20s; }
+  .place-card:nth-child(7) { animation-delay: 0.24s; }
+  .place-card:nth-child(8) { animation-delay: 0.28s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <span class="logo-text">PureMap</span>
+    <span class="logo-tag">curated organic</span>
+  </div>
+  <div class="header-center">
+    <div class="search-bar">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search places, neighborhoods..." />
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="showAddModal()">＋ Suggest a Place</button>
+    <button class="btn btn-primary" id="statsBtn">📊 Stats</button>
+  </div>
+</header>
+
+<!-- CITY BAR -->
+<nav class="city-bar" id="cityBar">
+  <button class="city-chip active" data-city="nyc">New York City</button>
+  <button class="city-chip" data-city="nj">New Jersey</button>
+  <button class="city-chip" data-city="dc">DC Metro</button>
+  <button class="city-chip" data-city="chicago">Chicago</button>
+  <button class="city-chip" data-city="la">LA Metro</button>
+  <button class="city-chip" data-city="sf">SF Bay Area</button>
+  <button class="city-chip" data-city="philly">Philadelphia</button>
+</nav>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <!-- Filters: Type -->
+  <div class="filter-section">
+    <div class="filter-label">Type</div>
+    <div class="filter-chips" id="typeFilters">
+      <button class="filter-chip active" data-type="all">All</button>
+      <button class="filter-chip" data-type="grocery"><span class="filter-dot" style="background:var(--accent-green)"></span>Grocery</button>
+      <button class="filter-chip" data-type="restaurant"><span class="filter-dot" style="background:var(--accent-amber)"></span>Restaurant</button>
+      <button class="filter-chip" data-type="juice"><span class="filter-dot" style="background:#7B5EA7"></span>Juice Bar</button>
+      <button class="filter-chip" data-type="cafe"><span class="filter-dot" style="background:#B85C4A"></span>Café</button>
+    </div>
+  </div>
+
+  <!-- Filters: Organic Level -->
+  <div class="filter-section">
+    <div class="filter-label">Organic Level</div>
+    <div class="filter-chips" id="levelFilters">
+      <button class="filter-chip active" data-level="all">All</button>
+      <button class="filter-chip" data-level="full">🌿 Fully Organic</button>
+      <button class="filter-chip" data-level="mostly">Mostly Organic</button>
+      <button class="filter-chip" data-level="some">Has Organic Options</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-header">
+    <span class="results-count" id="resultsCount">0 places</span>
+    <button class="sort-btn">Sort: Name ▾</button>
+  </div>
+
+  <div class="place-list" id="placeList"></div>
+</aside>
+
+<!-- MAP -->
+<div class="map-container">
+  <div id="map"></div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div class="detail-header">
+    <div class="detail-name" id="detailName"></div>
+    <div class="detail-type" id="detailType"></div>
+    <div id="detailBadge"></div>
+  </div>
+  <div class="detail-body">
+    <div class="detail-section">
+      <div class="detail-section-title">Address</div>
+      <div class="detail-address-text" id="detailAddress"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Neighborhood</div>
+      <div class="detail-text" id="detailNeighborhood"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Notes</div>
+      <div class="detail-text" id="detailNotes"></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Hours</div>
+      <div class="detail-text" id="detailHours"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Verified</div>
+      <div class="detail-text" id="detailVerified"></div>
+    </div>
+    <div class="detail-section" style="margin-top: 24px;">
+      <button class="report-btn" onclick="alert('Thank you! We'll investigate this report.')">⚑ Report a Problem (closed, wrong hours, etc.)</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG — Paste your Google Sheet ID here
+// ═══════════════════════════════════════════════════════
+const GOOGLE_SHEET_ID = '16C-noZsKSWX54AwNfbw1ANkEa_yHWDOqs_EYBEunzGU';
+const SHEET_NAME = 'Places';
+const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+
+// Fallback data used when Sheet ID isn't configured yet or fetch fails
+const FALLBACK_PLACES = [
+  {
+    "id": 1,
+    "name": "Whole Foods Market — Bowery",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "East Village",
+    "address": "95 E Houston St, New York, NY 10002",
+    "lat": 40.7243,
+    "lng": -73.9927,
+    "notes": "The flagship location. Enormous prepared food section. Hot bar and salad bar are reliable for organic options, but read labels — not everything is organic. Produce section is well-labeled organic vs. conventional. Bulk section is strong. Meat/dairy has good organic selection.",
+    "hours": "8:00 AM – 10:00 PM daily",
+    "verified": "2026-02-15"
+  },
+  {
+    "id": 2,
+    "name": "Westerly Natural Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Hell's Kitchen",
+    "address": "911 8th Ave, New York, NY 10019",
+    "lat": 40.7644,
+    "lng": -73.9862,
+    "notes": "Fantastic large organic market near Midtown. Organic produce. Great supplement section. Fresh juice bar!. Organic produce. Carefully curated packaged goods. Terrific organic juice bar in the back, open 7:30am-8:30pm weekdays and 10am-6pm weekends.",
+    "hours": "7:00 AM – 12:00 AM Mon–Fri, 8:00 – 12:00 AM Sat–Sun",
+    "verified": "2026-03-01"
+  },
+  {
+    "id": 3,
+    "name": "LifeThyme Natural Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Greenwich Village",
+    "address": "410 6th Ave, New York, NY 10011",
+    "lat": 40.7324,
+    "lng": -74.0003,
+    "notes": "A Village institution with a solid prepared foods section. Organic produce. Extensive organic dairy and meat. Hot bar uses organic ingredients. Good bulk section.",
+    "hours": "7:30 AM - 9:30 PM Mon-Fri, 7:30 AM – 9:30 PM Sat, 7:30 AM - 9 PM Sun",
+    "verified": "2026-02-10"
+  },
+  {
+    "id": 4,
+    "name": "A Matter of Health",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1347 1st Ave, New York, NY 10021",
+    "lat": 40.7682344090254,
+    "lng": -73.9554753249613,
+    "notes": "Old-school organic grocery with extensive selection. Great juice bar that closes earlier than the store.",
+    "hours": "8 AM - 9 PM Mon-Sat, 9 AM - 8 PM Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 5,
+    "name": "The Health Nuts",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1208 2nd Ave, New York, NY 10065",
+    "lat": 40.7632921901598,
+    "lng": -73.9615603483616,
+    "notes": "Old-school organic grocery with extensive selection. Juice bar closes earlier than the store.",
+    "hours": "8 AM - 9 PM Mon-Fri, 9 AM - 8 PM Sat-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 6,
+    "name": "The Health Nuts West Side Uptown 99th and Broadway",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "2611 Broadway, New York, NY 10025",
+    "lat": 40.7969785245111,
+    "lng": -73.9687586331875,
+    "notes": "Old-school organic grocery with extensive selection. Juice bar closes earlier than the store.",
+    "hours": "8 AM - 9 PM Mon-Fri, 9 AM - 9 PM Sat, 9 AM - 8 PM Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 7,
+    "name": "Health and Harmony",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "West Village",
+    "address": "470 Hudson St, New York, NY 10014",
+    "lat": 40.7326075565192,
+    "lng": -74.0045336559658,
+    "notes": "Organic outpost in the West Village",
+    "hours": "8 AM - 8:30 PM Mon-Fri, 9 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 8,
+    "name": "Elm Wellness",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Greenwich Village",
+    "address": "56 7th Ave, New York, NY 10011",
+    "lat": 40.7388835555669,
+    "lng": -73.9977101163706,
+    "notes": "Right on the border of Chelsea and Greenwich Village is this long-time haven for organic food. Also has a pharmacy! No longer has a juice bar, but is still a great store.",
+    "hours": "8:30 AM - 9 PM Mon-Fri, 10 AM - 9 PM Sat-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 9,
+    "name": "4th Street Food Co-op",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Bowery",
+    "address": "58 E 4th St, New York, NY 10003",
+    "lat": 40.7270198924704,
+    "lng": -73.9907086543257,
+    "notes": "Long-time co-op offering a range of organic, local products.",
+    "hours": "12 PM - 8 PM Mon/Tue/Thu/Fri, 4 PM - 8 PM Wed, 12 PM - 6 PM Sat, 12 PM - 7 PM Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 10,
+    "name": "East Village Organic",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "East Village",
+    "address": "121 1st Ave, New York, NY 10009",
+    "lat": 40.72767033718,
+    "lng": -73.98324138458,
+    "notes": "Old-school organic grocery with a fresh juice bar. Juice bar hours are 9 AM - 6 PM Tue-Sun",
+    "hours": "9 AM - 8 PM Mon-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 11,
+    "name": "Atherea Natural Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Union Square",
+    "address": "7 E 14th St, New York, NY 10003",
+    "lat": 40.7360605039464,
+    "lng": -73.9903224162354,
+    "notes": "New organic supermarket with an all-day café.",
+    "hours": "7 AM - 11 PM Mon-Sat, 7 AM - 9 PM Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 12,
+    "name": "Sunac Natural Market",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Midtown West",
+    "address": "600 W 42nd St, New York, NY 10036",
+    "lat": 40.7617382988779,
+    "lng": -73.9843123511993,
+    "notes": "Organic anchor in far Midtown West with prepared foods bar.",
+    "hours": "5 AM - 9:45 PM Mon-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 13,
+    "name": "Sunac Natural Food",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Williamsburg",
+    "address": "440 Union Ave, Brooklyn, NY 11211",
+    "lat": 40.7139678954451,
+    "lng": -73.9496850052576,
+    "notes": "Open early and late, this grocery store has plenty of organic options.",
+    "hours": "6 AM - 11 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 14,
+    "name": "Greenbay Marketplace",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Astoria",
+    "address": "32-06 Broadway, Astoria, NY 11106",
+    "lat": 40.7635115185451,
+    "lng": -73.912924395788,
+    "notes": "24-hour organic grocery in Astoria, Queens.",
+    "hours": "24 hours",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 15,
+    "name": "Broadway Natural",
+    "type": "grocery",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Astoria",
+    "address": "30-07 Broadway, Astoria, NY 11106",
+    "lat": 40.7648116880044,
+    "lng": -73.9136110412819,
+    "notes": "Organic produce, a juice bar, and other healthy selections at this grocery store.",
+    "hours": "8 AM - 10 PM Mon-Fri, 9 AM - 9 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 16,
+    "name": "Green Planet",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Clinton Hill",
+    "address": "969 Fulton St, Brooklyn, NY 11238",
+    "lat": 40.6832337347736,
+    "lng": -73.9640151123325,
+    "notes": "Organic bulk foods, produce, grocery, supplements, and an organic juice bar.",
+    "hours": "8 AM - 8 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 17,
+    "name": "Greenpoint Natural Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Greenpoint",
+    "address": "1021 Manhattan Ave, Brooklyn, NY 11222",
+    "lat": 40.7341000611564,
+    "lng": -73.9540010701159,
+    "notes": "Small but wonderful store with organic produce, foods, a fresh juice bar, and extended hours. Also offers home delivery.",
+    "hours": "7 AM - 11 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 18,
+    "name": "Natural Frontier Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Ditmas Park",
+    "address": "1102 Cortelyou Rd, Brooklyn, NY 11218",
+    "lat": 40.6400429082196,
+    "lng": -73.9640127205933,
+    "notes": "Old-school organic grocery that used to have Manhattan outposts, now only in Brooklyn and Queens.",
+    "hours": "8 AM - 10 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 19,
+    "name": "Natural Frontier Market",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Astoria",
+    "address": "31-28 Ditmars Blvd, Astoria, NY 11105",
+    "lat": 40.7757351085697,
+    "lng": -73.9078607518206,
+    "notes": "Old-school organic grocery that used to have Manhattan outposts, now only in Brooklyn and Queens. Their old 3rd Avenue store in the East 20s changed my life.",
+    "hours": "8 AM - 10 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 20,
+    "name": "1 Bay Ridge Health Food",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Bay Ridge",
+    "address": "9220 3rd Ave, Brooklyn, NY 11209",
+    "lat": 40.6191387812158,
+    "lng": -74.0304592420403,
+    "notes": "Tiny but mighty organic grocery and health food store with a fresh juice bar.",
+    "hours": "8 AM - 5 PM Mon-Sat",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 21,
+    "name": "Park Natural Foods",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Carroll Gardens",
+    "address": "350 Court St, Brooklyn, NY 11231",
+    "lat": 40.6826801959953,
+    "lng": -73.993263245017,
+    "notes": "All-organic produce, plus groceries and supplements, in a neighborhood store.",
+    "hours": "8 AM - 8 PM Mon-Sat, 9 AM - 7 PM Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 22,
+    "name": "Liberty Farms Organic Farm Store",
+    "type": "grocery",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Park Slope",
+    "address": "453a 4th St, Brooklyn, NY 11215",
+    "lat": 40.670476253084,
+    "lng": -73.9747114734542,
+    "notes": "Farm store operated by Liberty Farms, offering local and organic meats, eggs, vegetables, and more.",
+    "hours": "10:30 AM - 6:30 PM Tue-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 23,
+    "name": "Park Slope Food Co-op",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Park Slope",
+    "address": "782 Union St, Brooklyn, NY 11215",
+    "lat": 40.6755852146479,
+    "lng": -73.9738976960647,
+    "notes": "MEMBERS-ONLY but open (paid) membership. A mix of organic and conventional food. Small work requirement and focus on community.",
+    "hours": "8 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 24,
+    "name": "Brooklyn Harvest Market",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Bay Ridge",
+    "address": "8102 3rd Ave, Brooklyn, NY 11209",
+    "lat": 40.6271776325566,
+    "lng": -74.0281534197227,
+    "notes": "Gourmet grocery store with an excellent selection of organic products.",
+    "hours": "7 AM - 10 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 25,
+    "name": "Brooklyn Harvest Market",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Williamsburg",
+    "address": "25 N 5th St, Brooklyn, NY 11211",
+    "lat": 40.7195778018744,
+    "lng": -73.9614387315699,
+    "notes": "Gourmet grocery store with an excellent selection of organic products.",
+    "hours": "6:30 AM - 12 AM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 26,
+    "name": "Brooklyn Harvest Market",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Williamsburg",
+    "address": "204 Union Ave, Brooklyn, NY 11211",
+    "lat": 40.706832649588,
+    "lng": -73.9492188143172,
+    "notes": "Gourmet grocery store with an excellent selection of organic products.",
+    "hours": "7 AM - 12 AM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 27,
+    "name": "Brooklyn Harvest Market Hallett's Point",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Astoria",
+    "address": "26-14 2nd St, Astoria, NY 11102",
+    "lat": 40.778121786726,
+    "lng": -73.9238644420518,
+    "notes": "Gourmet grocery store with an excellent selection of organic products.",
+    "hours": "6:30 AM - 10 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 28,
+    "name": "Horseradish Market",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Bushwick",
+    "address": "839 Broadway, Brooklyn, NY 11206",
+    "lat": 40.7013309572518,
+    "lng": -73.9225984938167,
+    "notes": "Sustainably focused grocery store with some organic items.",
+    "hours": "9 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 29,
+    "name": "Downtown Natural Market",
+    "type": "grocery",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Downtown Brooklyn",
+    "address": "395 Jay St #4, Brooklyn, NY 11201",
+    "lat": 40.6922893922688,
+    "lng": -73.9842635344528,
+    "notes": "Grocery store with a focus on healthy items, some organic.",
+    "hours": "9 AM - 7 PM Mon-Fri, 10 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 30,
+    "name": "Madhufalla Juice Bar",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Nolita",
+    "address": "183 Mulberry St, New York, NY 10013",
+    "lat": 40.7210391041203,
+    "lng": -73.9967386018008,
+    "notes": "All-organic, old-school juice bar with healthy blends. If you like pure veggie juice, this place may appeal.",
+    "hours": "8:00 AM - 8:00 PM Mon-Fri, 10 AM - 10 PM Sat-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 31,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "SoHo",
+    "address": "156 Prince St, New York, NY 10012",
+    "lat": 40.7263643986757,
+    "lng": -73.9996576311951,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "8:30 AM - 6:30 PM Mon-Fri, 9 AM - 5 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 32,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Tribeca",
+    "address": "83 Murray St, New York, NY 10007",
+    "lat": 40.7154683972974,
+    "lng": -74.0086269383005,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 7 PM Mon-Fri, 8 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 33,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "West Village",
+    "address": "375 Hudson St, New York, NY 10014",
+    "lat": 40.7292182058457,
+    "lng": -74.0057945255651,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 7:15 PM Mon-Fri, 8:30 AM - 5:30 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 34,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "SoHo",
+    "address": "250 Mott St, New York, NY 10012",
+    "lat": 40.7239901981927,
+    "lng": -73.9930486683263,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "9:30 AM - 5:30 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 35,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Tribeca",
+    "address": "415 Greenwich St, New York, NY 10013",
+    "lat": 40.7221313588565,
+    "lng": -74.0087187560831,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7:30 AM - 6 PM Mon-Fri, 9 AM - 5 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 36,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "West Village",
+    "address": "122 Greenwich Ave, New York, NY 10011",
+    "lat": 40.7395998275177,
+    "lng": -74.0001833443199,
+    "notes": "One of the nicest Juice Press locations. Truly organic cold-pressed juices.",
+    "hours": "7:30 AM - 8 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 37,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Union Square",
+    "address": "1 W 22nd St, New York, NY 10010",
+    "lat": 40.7415995466191,
+    "lng": -73.9885747436973,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 9 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 38,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Kips Bay",
+    "address": "222 E 34th St, New York, NY 10016",
+    "lat": 40.7455337778287,
+    "lng": -73.9751422409141,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "8 AM - 7 PM Mon-Fri, 8 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 39,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "Grand Central Terminal, 87 E 42nd St, New York, NY 10017",
+    "lat": 40.7530439364288,
+    "lng": -73.9753139022876,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "6 AM - 8 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 40,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown West",
+    "address": "330 W 34th St, New York, NY 10001",
+    "lat": 40.7532552490873,
+    "lng": -73.9924585823657,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "8 AM - 4:30 PM Mon-Fri",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 41,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1050 3rd Ave, New York, NY 10065",
+    "lat": 40.7641775674044,
+    "lng": -73.9629328255324,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 8 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 42,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1474 3rd Ave Unit A, New York, NY 10028",
+    "lat": 40.7779010610772,
+    "lng": -73.9526975158758,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 8 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 43,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "239 Columbus Ave, New York, NY 10023",
+    "lat": 40.7773161032587,
+    "lng": -73.9767301085638,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7:30 AM - 7 PM Mon-Fri, 8 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 44,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "350 Amsterdam Ave, New York, NY 10024",
+    "lat": 40.7822230901466,
+    "lng": -73.9769446852806,
+    "notes": "One of the nicest Juice Press locations. Truly organic cold-pressed juices.",
+    "hours": "7:30 AM - 7:30 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 45,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "30 Rockefeller Plaza, New York, NY 10112",
+    "lat": 40.7592344182692,
+    "lng": -73.9780539794708,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "6:45 AM - 6 PM Mon-Fri, 9 AM - 5 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 46,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Park Slope",
+    "address": "207 7th Ave, Brooklyn, NY 11215",
+    "lat": 40.6709711463259,
+    "lng": -73.9771469758016,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 6 PM Mon-Fri, 8 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 47,
+    "name": "Juice Press",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Brooklyn Heights",
+    "address": "124 Montague St, Brooklyn, NY 11201",
+    "lat": 40.6947624932474,
+    "lng": -73.9940938502162,
+    "notes": "One of multiple locations. Truly organic cold-pressed juices.",
+    "hours": "7 AM - 7 PM Mon-Fri, 8 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 48,
+    "name": "goodsugar",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1186 3rd Ave, New York, NY 10021",
+    "lat": 40.7681264807017,
+    "lng": -73.9617638790481,
+    "notes": "Owned by the original founder of Juice Press. Serves organic juices in glass jars that you can recycle in-store, plus delicious baked goods. The Happy Muffin is amazing!. All food and drinks sold in the store are organic. Lots of fruit-juice blends.",
+    "hours": "7:30 AM - 8:30 PM Mon-Fri, 8 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-24"
+  },
+  {
+    "id": 49,
+    "name": "Grass Roots Juicery",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "East Williamsburg",
+    "address": "336a Graham Ave, Brooklyn, NY 11211",
+    "lat": 40.714622662902,
+    "lng": -73.9426875120358,
+    "notes": "Organic juice bar that also has a selection of food and wellness products.",
+    "hours": "7:30 AM - 7:30 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 50,
+    "name": "Om Juice Bar",
+    "type": "juice",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "NoMad",
+    "address": "62 Madison Ave, New York, NY 10016",
+    "lat": 40.7436952547195,
+    "lng": -73.985860357508,
+    "notes": "Organic juice bar with bottled juices in refrigerated cases and fresh-made smoothies, plus some bowls and salads.",
+    "hours": "8 AM - 7 PM Mon-Fri, 9 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 51,
+    "name": "Green Mandala",
+    "type": "juice",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Kips Bay",
+    "address": "240 E 28th St, New York, NY 10016",
+    "lat": 40.7413484926431,
+    "lng": -73.9775259448728,
+    "notes": "Website says juices are made with organic fruits and veggies; check menu for other items",
+    "hours": "7 AM - 7 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 52,
+    "name": "Green Mandala",
+    "type": "juice",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1232 Lexington Ave, New York, NY 10028",
+    "lat": 40.7779660120505,
+    "lng": -73.9561359022109,
+    "notes": "Website says juices are made with organic fruits and veggies; check menu for other items",
+    "hours": "7 AM - 7 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 53,
+    "name": "The Bean",
+    "type": "juice",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "East Village",
+    "address": "54 2nd Ave, New York, NY 10003",
+    "lat": 40.7265826392596,
+    "lng": -73.9854342354982,
+    "notes": "It's a café with a juice bar inside it! In my experience, all juices are or were organic, though the online menu doesn't mention it. Ask at the store.",
+    "hours": "7 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 54,
+    "name": "The Bean",
+    "type": "juice",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "East Village",
+    "address": "31 3rd Ave, New York, NY 10003",
+    "lat": 40.7308076663857,
+    "lng": -73.9841437345835,
+    "notes": "It's a café with a juice bar inside it! In my experience, all juices are or were organic, though the online menu doesn't mention it. Ask at the store.",
+    "hours": "7 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 55,
+    "name": "The Bean",
+    "type": "juice",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Union Square",
+    "address": "771 Broadway, New York, NY 10003",
+    "lat": 40.7324336736815,
+    "lng": -73.9871478086192,
+    "notes": "It's a café with a juice bar inside it! In my experience, all juices are or were organic, though the online menu doesn't mention it. Ask at the store.",
+    "hours": "7 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 56,
+    "name": "Le Botaniste",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "SoHo",
+    "address": "127 Grand St, New York, NY 10013",
+    "lat": 40.7215996503952,
+    "lng": -73.9966320999993,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 57,
+    "name": "Le Botaniste",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "11 W 42nd St, New York, NY 10036",
+    "lat": 40.7555120696052,
+    "lng": -73.9757614220165,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 58,
+    "name": "Le Botaniste Penn Plaza",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "154 W 32nd St, New York, NY 10001",
+    "lat": 40.7502454894774,
+    "lng": -73.9824562155815,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 59,
+    "name": "Le Botaniste",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Midtown East",
+    "address": "666 3rd Ave, New York, NY 10017",
+    "lat": 40.752196123351,
+    "lng": -73.9689807977646,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 60,
+    "name": "Le Botaniste",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "833 Lexington Ave, New York, NY 10065",
+    "lat": 40.765848958143,
+    "lng": -73.9614276973321,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 61,
+    "name": "Le Botaniste",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "156 Columbus Ave, New York, NY 10023",
+    "lat": 40.7752092812946,
+    "lng": -73.9764480675103,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 62,
+    "name": "Le Botaniste Greenpoint",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Greenpoint",
+    "address": "673 Manhattan Ave, Brooklyn, NY 11222",
+    "lat": 40.7249394148815,
+    "lng": -73.951042980798,
+    "notes": "Website pledges 100% organic, plant-based food. It's tasty, too! I love the Mezze bowl",
+    "hours": "11 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 63,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Financial District",
+    "address": "85 Broad St, New York, NY 10004",
+    "lat": 40.7062135268344,
+    "lng": -74.0019321459023,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic. This is my favorite location. Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 64,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Tribeca",
+    "address": "81 W Broadway, New York, NY 10007",
+    "lat": 40.7161026909758,
+    "lng": -74.0036487588538,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic. A nice location. Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 65,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Flatiron",
+    "address": "921 Broadway, New York, NY 10010",
+    "lat": 40.7410793002242,
+    "lng": -73.9825344094712,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic. A nice location. Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 66,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown West",
+    "address": "339 7th Ave, New York, NY 10001",
+    "lat": 40.7486549857272,
+    "lng": -73.9890789994151,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 67,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "400 5th Ave, New York, NY 10017",
+    "lat": 40.7407866600707,
+    "lng": -73.9853024491989,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 68,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "1400 Broadway, New York, NY 10018",
+    "lat": 40.7541167470105,
+    "lng": -73.9799809466215,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 6 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 69,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "70 W 40th St, New York, NY 10018",
+    "lat": 40.7542467834777,
+    "lng": -73.9812684069225,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6 AM - 9 PM Mon-Fri, 7 AM - 9 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 70,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "16 E 44th St, New York, NY 10017",
+    "lat": 40.755335095405,
+    "lng": -73.9749490662954,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 71,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown East",
+    "address": "685 3rd Ave, New York, NY 10017",
+    "lat": 40.7530346501418,
+    "lng": -73.9688754221777,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 72,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown",
+    "address": "1377 6th Ave, New York, NY 10019",
+    "lat": 40.7647916452077,
+    "lng": -73.9729245182561,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 73,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown West",
+    "address": "250 W 55th St, New York, NY 10019",
+    "lat": 40.7663250129988,
+    "lng": -73.9803478610667,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic. This is one of my favorite locations. Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "7 AM - 7 PM Mon-Wed, 6:30 AM - 7 PM Thu-Fri, 7:30 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 74,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown West",
+    "address": "1800 Broadway, Columbus Circle, New York, NY 10019",
+    "lat": 40.7683055607004,
+    "lng": -73.9776484636811,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 9 PM Mon-Fri, 7 AM - 9 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 75,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Central Park",
+    "address": "2 W 69th St, New York, NY 10023",
+    "lat": 40.7739913212661,
+    "lng": -73.9714061072267,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic. Special location on a hillside in Central Park with outdoor seating. Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 6 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 76,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "2161 Broadway, New York, NY 10024",
+    "lat": 40.7833198009608,
+    "lng": -73.9746484877653,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 77,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "861 Lexington Ave, New York, NY 10065",
+    "lat": 40.7665503339174,
+    "lng": -73.9615163919871,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 78,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1270 1st Ave, New York, NY 10065",
+    "lat": 40.766680346063,
+    "lng": -73.9532766460608,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "7 AM - 6 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 79,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Central Park",
+    "address": "E 72nd St and 5th Ave, New York, NY 10021",
+    "lat": 40.7750655921653,
+    "lng": -73.9604864237463,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "7 AM - 6 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 80,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1131 Madison Ave, New York, NY 10028",
+    "lat": 40.7808501450678,
+    "lng": -73.9562807200964,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 81,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1309 Lexington Ave, New York, NY 10128",
+    "lat": 40.7819550023708,
+    "lng": -73.9479551434834,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Thu, 6:30 AM - 8 PM Fri, 7 AM - 8 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 82,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1399 Madison Ave, New York, NY 10029",
+    "lat": 40.7891036348372,
+    "lng": -73.9468393445559,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 83,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Midtown East",
+    "address": "370 Lexington Ave, New York, NY 10017",
+    "lat": 40.751776047171,
+    "lng": -73.974273205632,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 6 PM Mon-Fri, 7:30 AM - 5 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 84,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Battery Park City",
+    "address": "395 S End Ave, New York, NY 10280",
+    "lat": 40.7122805730939,
+    "lng": -74.0101933488275,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 6 PM Mon-Fri, 7:30 AM - 6 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 85,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "60 W 65th St, New York, NY 10023",
+    "lat": 40.7727783727957,
+    "lng": -73.9809519789297,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 8 PM Mon-Fri, 7:30 AM - 8 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 86,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1592 1st Ave, New York, NY 10028",
+    "lat": 40.7748502675453,
+    "lng": -73.9497068102707,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "7 AM - 5 PM Mon-Thu, 7 AM - 6 PM Fri-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 87,
+    "name": "Le Pain Quotidien",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper East Side",
+    "address": "1535 3rd Ave, New York, NY 10028",
+    "lat": 40.7793829586751,
+    "lng": -73.9525302544497,
+    "notes": "Belgian chain, less organic than it used to be, but most bread still uses organic flour, and eggs appear to still be organic. Butter is no longer organic.",
+    "hours": "6:30 AM - 7 PM Mon-Fri, 7:30 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 88,
+    "name": "The Butcher's Daughter",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Nolita",
+    "address": "19 Kenmare St, New York, NY 10012",
+    "lat": 40.7231820401516,
+    "lng": -73.9750401135539,
+    "notes": "Has organic eggs and possibly some other organic items. Food is yummy. Has organic eggs and possibly some other organic items.",
+    "hours": "8 AM - 9 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 89,
+    "name": "The Butcher's Daughter",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Williamsburg",
+    "address": "271 Metropolitan Ave, Brooklyn, NY 11211",
+    "lat": 40.7149784959044,
+    "lng": -73.9577967293192,
+    "notes": "Has organic eggs and possibly some other organic items. Food is yummy. Has organic eggs and possibly some other organic items.",
+    "hours": "8 AM - 8 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 90,
+    "name": "Healthy Frenchy",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "East Harlem",
+    "address": "127 E 102nd St, New York, NY 10029",
+    "lat": 40.7914947206655,
+    "lng": -73.9401723242159,
+    "notes": "Website \"About Us\" section pledges 100% organic. Bowls, smoothies, light eats.",
+    "hours": "9 AM - 4 PM Mon-Sat",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 91,
+    "name": "Café Bliss and Organic Juice Bar",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Sunnyside",
+    "address": "44-17 48th Ave, Woodside, NY 11377",
+    "lat": 40.7410247995666,
+    "lng": -73.9093999810865,
+    "notes": "Check menu and ask if needed to identify organic items. Menu photo indicates whole milk and yogurt used in smoothies are organic.",
+    "hours": "9 AM - 7 PM Tue-Fri, 9 AM - 6:30 PM Sat, 9 AM - 7 PM Sun",
+    "verified": "2026-04-25"
+  },
+  {
+    "id": 92,
+    "name": "Brodo",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "East Village",
+    "address": "200 1st Ave, New York, NY 10009",
+    "lat": 40.7302009510621,
+    "lng": -73.982633008476,
+    "notes": "Organic bone broth of various types with various spices, served at a takeout window (not sit-down). Great on cold days!",
+    "hours": "9 AM - 7 PM Mon-Fri, 10 AM - 7 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 93,
+    "name": "In Common NYC",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Hudson Yards",
+    "address": "449 9th Ave Suite 101, New York, NY 10001",
+    "lat": 40.7573240761758,
+    "lng": -73.982145803433,
+    "notes": "Eggs are organic.",
+    "hours": "8 AM - 3 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 94,
+    "name": "Regular NYC",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Financial District",
+    "address": "19 Rector St, New York, NY 10006",
+    "lat": 40.7101173197281,
+    "lng": -74.0074253099125,
+    "notes": "Eggs are organic.",
+    "hours": "7 AM - 3 PM Mon-Fri, 7 AM - 4 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 95,
+    "name": "Locanut",
+    "type": "restaurant",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Chelsea",
+    "address": "361 W 17th St, New York, NY 10011",
+    "lat": 40.7447746515789,
+    "lng": -73.9946095101288,
+    "notes": "Organic, gluten-free restaurant that also offers meal delivery and pickup.",
+    "hours": "9 AM - 9:30 PM Mon-Fri, 10 AM - 9:30 PM Sat-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 96,
+    "name": "Friend of a Farmer",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Gramercy Park",
+    "address": "77 Irving Place, New York, NY 10003",
+    "lat": 40.738791858741,
+    "lng": -73.9788166637701,
+    "notes": "Some produce is organic, but it's not specified which is and which is not. Sourcing is local from the Hudson Valley.",
+    "hours": "9 AM - 9:30 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 97,
+    "name": "Friend of a Farmer",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Upper West Side",
+    "address": "68 W 71st St, New York, NY 10023",
+    "lat": 40.7765546642099,
+    "lng": -73.9783547293158,
+    "notes": "Some produce is organic, but it's not specified which is and which is not. Sourcing is local from the Hudson Valley.",
+    "hours": "9 AM - 9:30 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 98,
+    "name": "Society Café",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Greenwich Village",
+    "address": "52 W 13th St, New York, NY 10011",
+    "lat": 40.7378813865683,
+    "lng": -73.9906612985391,
+    "notes": "Organic chicken on dinner menu.",
+    "hours": "Dinner is 4 PM - 10 PM Mon-Thu, 4 PM - 11 PM Fri-Sat, and 4PM - 10 PM",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 99,
+    "name": "One40 Rooftop Restaurant & Bar",
+    "type": "restaurant",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Financial District",
+    "address": "140 Washington St, New York, NY 10006",
+    "lat": 40.7102166906683,
+    "lng": -74.0121225269951,
+    "notes": "Organic chicken on lunch and dinner menu, some organic breakfast accoutrements.",
+    "hours": "7:30 AM - 9 PM Sun-Thu, 7:30 AM - 10 PM Fri-Sat",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 100,
+    "name": "Ateaz Café",
+    "type": "cafe",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Financial District",
+    "address": "71 Greenwich St, New York, NY 10006",
+    "lat": 40.7075360271495,
+    "lng": -74.0125910385274,
+    "notes": "Website states organic is their mission, so coffee and tea (and possibly food too) will be organic.",
+    "hours": "7 AM - 7 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 101,
+    "name": "Ateaz Café",
+    "type": "cafe",
+    "level": "full",
+    "city": "nyc",
+    "neighborhood": "Kew Gardens",
+    "address": "116-29 Metropolitan Ave, Kew Gardens, NY 11415",
+    "lat": 40.7074460013395,
+    "lng": -73.8345711581554,
+    "notes": "Website states organic is their mission, so coffee and tea (and possibly food too) will be organic.",
+    "hours": "7 AM - 7 PM Mon-Sun",
+    "verified": "2026-04-26"
+  },
+  {
+    "id": 102,
+    "name": "Devoción",
+    "type": "cafe",
+    "level": "some",
+    "city": "nyc",
+    "neighborhood": "Williamsburg",
+    "address": "69 Grand St, Brooklyn, NY 11249",
+    "lat": 40.7131,
+    "lng": -73.9587,
+    "notes": "Stunning café space with a living wall. Coffee beans are farm-direct from Colombia. Organic milk options available. Organic oat milk and organic dairy available. Coffee is direct-trade, single-origin and pesticide-free per their sourcing.",
+    "hours": "7:00 AM – 7:00 PM daily",
+    "verified": "2026-02-18"
+  },
+  {
+    "id": 103,
+    "name": "Cha Cha Matcha",
+    "type": "cafe",
+    "level": "mostly",
+    "city": "nyc",
+    "neighborhood": "Nolita",
+    "address": "373 Broome St, New York, NY 10013",
+    "lat": 40.7232,
+    "lng": -73.9956,
+    "notes": "Matcha-focused café. Their ceremonial grade matcha is organic. Organic oat milk standard. Organic ceremonial matcha. Organic oat milk as default. Organic acai bowls. Some baked goods may not be fully organic.",
+    "hours": "8:00 AM – 7:00 PM daily",
+    "verified": "2026-03-08"
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+//  GOOGLE SHEETS LOADER
+// ═══════════════════════════════════════════════════════
+let PLACES = [];
+
+function parseSheetRow(row) {
+  const type = (row.type || '').trim();
+  const status = (row.status || 'active').trim();
+  if (status === 'closed') return null;
+  const lat = parseFloat(row.latitude);
+  const lng = parseFloat(row.longitude);
+  if (isNaN(lat) || isNaN(lng)) return null;
+  if (!row.name) return null;
+
+  let verified = row.verified_date || '2026-01-01';
+  // Handle various date formats from sheets
+  if (verified instanceof Date) {
+    verified = verified.toISOString().split('T')[0];
+  }
+
+  return {
+    id: parseInt(row.id) || 0,
+    name: (row.name || '').trim(),
+    type: type === 'juice_bar' ? 'juice' : type,
+    level: (row.organic_level || 'some').trim(),
+    city: (row.city_region || 'nyc').trim(),
+    neighborhood: (row.neighborhood || '').trim(),
+    address: (row.address || '').trim(),
+    lat: lat,
+    lng: lng,
+    notes: (row.notes || '').trim(),
+    hours: (row.hours || '').trim(),
+    verified: verified.toString().trim()
+  };
+}
+
+async function loadPlaces() {
+  // Show loading state
+  const list = document.getElementById('placeList');
+  list.innerHTML = '<div style="padding:40px 20px;text-align:center;"><div style="font-size:24px;margin-bottom:8px;">🌿</div><div style="font-size:13px;color:var(--text-muted);">Loading places...</div></div>';
+
+  if (GOOGLE_SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+    console.log('No Google Sheet ID configured — using fallback data');
+    PLACES = FALLBACK_PLACES;
+    renderAll();
+    return;
+  }
+
+  try {
+    const response = await fetch(SHEET_CSV_URL);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const csvText = await response.text();
+
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false
+    });
+
+    const places = parsed.data.map(parseSheetRow).filter(p => p !== null);
+
+    if (places.length === 0) {
+      console.warn('No valid places parsed from sheet — using fallback');
+      PLACES = FALLBACK_PLACES;
+    } else {
+      console.log(`Loaded ${places.length} places from Google Sheets`);
+      PLACES = places;
+    }
+  } catch (err) {
+    console.error('Failed to load from Google Sheets:', err);
+    console.log('Using fallback data');
+    PLACES = FALLBACK_PLACES;
+  }
+
+  renderAll();
+}
+
+// City centers
+const CITIES = {
+  nyc: { lat: 40.735, lng: -73.99, zoom: 13, name: "New York City" },
+  nj: { lat: 40.22, lng: -74.76, zoom: 9, name: "New Jersey" },
+  dc: { lat: 38.91, lng: -77.04, zoom: 11, name: "DC Metro" },
+  chicago: { lat: 41.88, lng: -87.63, zoom: 12, name: "Chicago" },
+  la: { lat: 34.05, lng: -118.35, zoom: 11, name: "LA Metro" },
+  sf: { lat: 37.58, lng: -122.15, zoom: 10, name: "SF Bay Area" },
+  philly: { lat: 39.95, lng: -75.17, zoom: 12, name: "Philadelphia" }
+};
+
+// ═══════════════════════════════════════
+//  MAP INITIALIZATION
+// ═══════════════════════════════════════
+const map = L.map('map', {
+  zoomControl: false
+}).setView([40.735, -73.99], 13);
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Elegant light tile layer
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/copyright">OSM</a>',
+  maxZoom: 19
+}).addTo(map);
+
+// Markers layer
+let markers = [];
+let activeCard = null;
+let activeType = 'all';
+let activeLevel = 'all';
+let currentCity = 'nyc';
+
+function getMarkerColor(type) {
+  const colors = {
+    grocery: 'marker-grocery',
+    restaurant: 'marker-restaurant',
+    juice: 'marker-juice',
+    cafe: 'marker-cafe'
+  };
+  return colors[type] || 'marker-grocery';
+}
+
+function getMarkerEmoji(type) {
+  const emojis = { grocery: '🥬', restaurant: '🍽', juice: '🧃', cafe: '☕' };
+  return emojis[type] || '📍';
+}
+
+function getBadgeHTML(level) {
+  const badges = {
+    full: '<span class="organic-badge badge-full">🌿 Fully Organic</span>',
+    mostly: '<span class="organic-badge badge-mostly">◐ Mostly Organic</span>',
+    some: '<span class="organic-badge badge-some">◔ Organic Options</span>'
+  };
+  return badges[level] || '';
+}
+
+function getLevelLabel(level) {
+  return { full: 'Fully Organic', mostly: 'Mostly Organic', some: 'Has Organic Options' }[level] || level;
+}
+
+function getTypeLabel(type) {
+  return { grocery: 'Grocery Store', restaurant: 'Restaurant', juice: 'Juice Bar', cafe: 'Café' }[type] || type;
+}
+
+function daysSince(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+}
+
+// ═══════════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════════
+function getFilteredPlaces() {
+  return PLACES.filter(p => {
+    if (p.city !== currentCity) return false;
+    if (activeType !== 'all' && p.type !== activeType) return false;
+    if (activeLevel !== 'all' && p.level !== activeLevel) return false;
+    // Search filter
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (q) {
+      return p.name.toLowerCase().includes(q) ||
+             p.neighborhood.toLowerCase().includes(q) ||
+             p.notes.toLowerCase().includes(q);
+    }
+    return true;
+  });
+}
+
+function renderAll() {
+  const filtered = getFilteredPlaces();
+
+  // Clear markers
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  // Update count
+  document.getElementById('resultsCount').textContent = `${filtered.length} place${filtered.length !== 1 ? 's' : ''}`;
+
+  // Render cards
+  const list = document.getElementById('placeList');
+  list.innerHTML = '';
+
+  if (filtered.length === 0) {
+    const cityName = CITIES[currentCity].name;
+    const emptyEl = document.createElement('div');
+    emptyEl.style.cssText = 'padding: 40px 20px; text-align: center;';
+    emptyEl.innerHTML = `
+      <div style="font-size: 36px; margin-bottom: 12px; opacity: 0.5;">🌿</div>
+      <div style="font-family: DM Serif Display, serif; font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">${cityName} — Coming Soon</div>
+      <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 280px; margin: 0 auto;">We're curating organic-friendly spots in ${cityName}. Know a great place? Hit <strong>Suggest a Place</strong> to help us build this map.</div>
+    `;
+    list.appendChild(emptyEl);
+    return;
+  }
+
+  filtered.sort((a, b) => a.name.localeCompare(b.name)).forEach(place => {
+    // Card
+    const card = document.createElement('div');
+    card.className = 'place-card';
+    card.dataset.id = place.id;
+
+    const days = daysSince(place.verified);
+    const verifiedClass = days > 90 ? 'stale-dot' : 'verified-dot';
+    const verifiedLabel = days > 90 ? `Verified ${days}d ago — may be stale` : `Verified ${days}d ago`;
+
+    card.innerHTML = `
+      <div class="place-card-top">
+        <div class="place-name">${place.name}</div>
+        ${getBadgeHTML(place.level)}
+      </div>
+      <div class="place-type">${getMarkerEmoji(place.type)} ${getTypeLabel(place.type)}</div>
+      <div class="place-address">${place.address}</div>
+      <div class="place-notes">"${place.notes.substring(0, 120)}${place.notes.length > 120 ? '...' : ''}"</div>
+      <div class="place-meta">
+        <span class="place-meta-item"><span class="${verifiedClass}"></span> ${verifiedLabel}</span>
+        <span class="place-meta-item">📍 ${place.neighborhood}</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => openDetail(place, card));
+    list.appendChild(card);
+
+    // Map marker
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="custom-marker ${getMarkerColor(place.type)}"><span>${getMarkerEmoji(place.type)}</span></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -34]
+    });
+
+    const marker = L.marker([place.lat, place.lng], { icon }).addTo(map);
+
+    marker.bindPopup(`
+      <div class="popup-inner">
+        <div class="popup-name">${place.name}</div>
+        <div class="popup-address">${place.address}</div>
+        ${getBadgeHTML(place.level)}
+        <div class="popup-notes" style="margin-top:8px">${place.notes.substring(0, 100)}...</div>
+        <div class="popup-meta">
+          <span>📍 ${place.neighborhood}</span>
+          <span>🕐 ${place.hours}</span>
+        </div>
+      </div>
+    `);
+
+    marker.on('click', () => openDetail(place, card));
+    markers.push(marker);
+  });
+}
+
+function openDetail(place, card) {
+  // Highlight card
+  document.querySelectorAll('.place-card').forEach(c => c.classList.remove('active'));
+  if (card) card.classList.add('active');
+
+  // Fill detail panel
+  document.getElementById('detailName').textContent = place.name;
+  document.getElementById('detailType').textContent = `${getMarkerEmoji(place.type)} ${getTypeLabel(place.type)} — ${place.neighborhood}`;
+  document.getElementById('detailBadge').innerHTML = getBadgeHTML(place.level);
+  document.getElementById('detailAddress').textContent = place.address;
+  document.getElementById('detailNeighborhood').textContent = place.neighborhood;
+  document.getElementById('detailNotes').textContent = place.notes;
+  document.getElementById('detailHours').textContent = place.hours;
+
+  const days = daysSince(place.verified);
+  const freshness = days > 90
+    ? `⚠ Last verified ${place.verified} (${days} days ago) — this listing may be out of date`
+    : `✓ Verified ${place.verified} (${days} days ago)`;
+  document.getElementById('detailVerified').textContent = freshness;
+
+  document.getElementById('detailPanel').classList.add('open');
+
+  // Pan map
+  map.panTo([place.lat, place.lng], { animate: true });
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.querySelectorAll('.place-card').forEach(c => c.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════
+document.getElementById('typeFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#typeFilters .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeType = chip.dataset.type;
+  closeDetail();
+  renderAll();
+});
+
+document.getElementById('levelFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#levelFilters .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeLevel = chip.dataset.level;
+  closeDetail();
+  renderAll();
+});
+
+// City switcher
+document.getElementById('cityBar').addEventListener('click', (e) => {
+  const chip = e.target.closest('.city-chip');
+  if (!chip) return;
+  document.querySelectorAll('.city-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  currentCity = chip.dataset.city;
+  const city = CITIES[currentCity];
+  map.setView([city.lat, city.lng], city.zoom, { animate: true });
+  closeDetail();
+  renderAll();
+});
+
+// Search
+document.getElementById('searchInput').addEventListener('input', () => {
+  closeDetail();
+  renderAll();
+});
+
+// Stats button
+document.getElementById('statsBtn').addEventListener('click', () => {
+  const cityPlaces = PLACES.filter(p => p.city === currentCity);
+  const full = cityPlaces.filter(p => p.level === 'full').length;
+  const mostly = cityPlaces.filter(p => p.level === 'mostly').length;
+  const some = cityPlaces.filter(p => p.level === 'some').length;
+  const groceries = cityPlaces.filter(p => p.type === 'grocery').length;
+  const restaurants = cityPlaces.filter(p => p.type === 'restaurant').length;
+  const juices = cityPlaces.filter(p => p.type === 'juice').length;
+  const cafes = cityPlaces.filter(p => p.type === 'cafe').length;
+  const stale = cityPlaces.filter(p => daysSince(p.verified) > 90).length;
+
+  alert(`PureMap — ${CITIES[currentCity].name} Stats\n\n` +
+    `Total Places: ${cityPlaces.length}\n\n` +
+    `By Type:\n  🥬 Grocery: ${groceries}\n  🍽 Restaurant: ${restaurants}\n  🧃 Juice Bar: ${juices}\n  ☕ Café: ${cafes}\n\n` +
+    `By Organic Level:\n  🌿 Fully Organic: ${full}\n  ◐ Mostly: ${mostly}\n  ◔ Some Options: ${some}\n\n` +
+    `⚠ Stale (90+ days): ${stale}`
+  );
+});
+
+function showAddModal() {
+  alert('Suggest a Place feature coming soon!\n\nIn the full version, this will open a form where you can submit a new organic-friendly location for review.');
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+loadPlaces();
+</script>
+</body>
+</html>
