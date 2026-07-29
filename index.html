@@ -2395,8 +2395,8 @@ function renderAll() {
     card.dataset.id = place.id;
 
     const days = daysSince(place.verified);
-    const verifiedClass = days > 90 ? 'stale-dot' : 'verified-dot';
-    const verifiedLabel = days > 90 ? `Verified ${days}d ago — may be stale` : `Verified ${days}d ago`;
+    const verifiedClass = days > 180 ? 'stale-dot' : 'verified-dot';
+    const verifiedLabel = days > 180 ? `Verified ${days}d ago — may be stale` : `Verified ${days}d ago`;
 
     card.innerHTML = `
       <div class="place-card-top">
@@ -2459,7 +2459,7 @@ function openDetail(place, card) {
   document.getElementById('detailHours').textContent = place.hours;
 
   const days = daysSince(place.verified);
-  const freshness = days > 90
+  const freshness = days > 180
     ? `⚠ Last verified ${place.verified} (${days} days ago) — this listing may be out of date`
     : `✓ Verified ${place.verified} (${days} days ago)`;
   document.getElementById('detailVerified').textContent = freshness;
@@ -2527,13 +2527,13 @@ document.getElementById('statsBtn').addEventListener('click', () => {
   const restaurants = cityPlaces.filter(p => p.type === 'restaurant').length;
   const juices = cityPlaces.filter(p => p.type === 'juice').length;
   const cafes = cityPlaces.filter(p => p.type === 'cafe').length;
-  const stale = cityPlaces.filter(p => daysSince(p.verified) > 90).length;
+  const stale = cityPlaces.filter(p => daysSince(p.verified) > 180).length;
 
   alert(`PureMap — ${CITIES[currentCity].name} Stats\n\n` +
     `Total Places: ${cityPlaces.length}\n\n` +
     `By Type:\n  🥬 Grocery: ${groceries}\n  🍽 Restaurant: ${restaurants}\n  🧃 Juice Bar: ${juices}\n  ☕ Café: ${cafes}\n\n` +
     `By Organic Level:\n  🌿 Fully Organic: ${full}\n  ◐ Mostly: ${mostly}\n  ◔ Some Options: ${some}\n\n` +
-    `⚠ Stale (90+ days): ${stale}`
+    `⚠ Stale (180+ days): ${stale}`
   );
 });
 
