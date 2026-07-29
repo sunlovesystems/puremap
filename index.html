@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Curated map of genuinely organic grocery stores, restaurants, juice bars, and cafés. No greenwashing — every listing is vetted by real organic food enthusiasts.">
+<meta property="og:title" content="PureMap — Curated Organic & Healthy Food Map">
+<meta property="og:description" content="Find genuinely organic grocery stores, restaurants, juice bars, and cafés. Every listing vetted — no greenwashing.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sunlovesystems.github.io/puremap">
 <title>PureMap — Curated Organic & Healthy Food Map</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -720,7 +725,7 @@
       <div class="detail-text" id="detailVerified"></div>
     </div>
     <div class="detail-section" style="margin-top: 24px;">
-      <button class="report-btn" onclick="alert('Thank you! We'll investigate this report.')">⚑ Report a Problem (closed, wrong hours, etc.)</button>
+      <button class="report-btn" onclick="alert('Thank you! We\u2019ll investigate this report.')">⚑ Report a Problem (closed, wrong hours, etc.)</button>
     </div>
   </div>
 </div>
@@ -2269,6 +2274,15 @@ const CITIES = {
 };
 
 // ═══════════════════════════════════════
+//  SECURITY — HTML escaping
+// ═══════════════════════════════════════
+function esc(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str || ''));
+  return div.innerHTML;
+}
+
+// ═══════════════════════════════════════
 //  MAP INITIALIZATION
 // ═══════════════════════════════════════
 const map = L.map('map', {
@@ -2386,15 +2400,15 @@ function renderAll() {
 
     card.innerHTML = `
       <div class="place-card-top">
-        <div class="place-name">${place.name}</div>
+        <div class="place-name">${esc(place.name)}</div>
         ${getBadgeHTML(place.level)}
       </div>
       <div class="place-type">${getMarkerEmoji(place.type)} ${getTypeLabel(place.type)}</div>
-      <div class="place-address">${place.address}</div>
-      <div class="place-notes">"${place.notes.substring(0, 120)}${place.notes.length > 120 ? '...' : ''}"</div>
+      <div class="place-address">${esc(place.address)}</div>
+      <div class="place-notes">"${esc(place.notes.substring(0, 120))}${place.notes.length > 120 ? '...' : ''}"</div>
       <div class="place-meta">
         <span class="place-meta-item"><span class="${verifiedClass}"></span> ${verifiedLabel}</span>
-        <span class="place-meta-item">📍 ${place.neighborhood}</span>
+        <span class="place-meta-item">📍 ${esc(place.neighborhood)}</span>
       </div>
     `;
 
@@ -2414,13 +2428,13 @@ function renderAll() {
 
     marker.bindPopup(`
       <div class="popup-inner">
-        <div class="popup-name">${place.name}</div>
-        <div class="popup-address">${place.address}</div>
+        <div class="popup-name">${esc(place.name)}</div>
+        <div class="popup-address">${esc(place.address)}</div>
         ${getBadgeHTML(place.level)}
-        <div class="popup-notes" style="margin-top:8px">${place.notes.substring(0, 100)}...</div>
+        <div class="popup-notes" style="margin-top:8px">${esc(place.notes.substring(0, 100))}...</div>
         <div class="popup-meta">
-          <span>📍 ${place.neighborhood}</span>
-          <span>🕐 ${place.hours}</span>
+          <span>📍 ${esc(place.neighborhood)}</span>
+          <span>🕐 ${esc(place.hours)}</span>
         </div>
       </div>
     `);
